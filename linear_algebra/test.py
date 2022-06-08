@@ -19,7 +19,7 @@ class Solution:
 
     # 3. Loss function
     def loss_func(self, x, t):
-        y = np.dot(x, self.W) + self.b
+        y = np.dot(x, self.W) + self.b  # 내적
         return np.mean(np.power((t - y), 2))  # 최소 제곱법
 
     # 4. 미분함수
@@ -61,7 +61,7 @@ class Solution:
         return np.dot(x, self.W) + self.b  # Hypothesis, Linear Regression Model
 
     def solution(self):
-        # 6. learning rate 정의
+        # 6. learning rate 정의 -
         learning_rate = 0.0001
 
         # 7. 학습 진행
