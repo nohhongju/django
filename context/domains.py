@@ -114,18 +114,19 @@ class Reader(ReaderBase):
     def csv(self, fname)-> object:
         return pd.read_csv(f"{self.new_file(fname)}.csv", encoding='UTF-8', thousands=',')
 
-    def xls(self, fname, header, cols)-> object:
-        return pd.read_excel(f"{self.new_file(fname)}.xls", header=header, usecols=cols)
+    def xls(self, fname, header, skiprows, cols)-> object:
+        return pd.read_excel(f"{self.new_file(fname)}.xls", header=header, skiprows=[skiprows], usecols=cols)
 
     def json(self, fname)-> object:
         return pd.read_json(f"{self.new_file(fname)}.json", encoding='UTF-8')
 
-    def gmaps(self)-> object:
+    def gmaps(self)-> googlemaps.Client:
         return googlemaps.Client(key='')
 
 
 class Printer(PrinterBase):
-    def dframe(self, this):  # 컨슈머
+    @staticmethod
+    def dframe(this):  # 컨슈머
         print('*' * 100)
         print(f'1. Target type \n {type(this)} ')
         print(f'2. Target column \n {this.columns} ')
