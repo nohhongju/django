@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from context.domains import Reader, File, Printer
+from context.domains import Reader, File
 import googlemaps
 import folium
 from sklearn import preprocessing
@@ -9,8 +9,6 @@ class Solution(Reader):
     def __init__(self):
         self.file = File()
         self.file.context = './data/'
-        # self.reader = Reader()
-        self.printer = Printer()
         self.crime_rate_columns = ['살인검거율', '강도검거율', '강간검거율', '절도검거율', '폭력검거율']
         self.crime_columns = ['살인', '강도', '강간', '절도', '폭력']
 
@@ -20,6 +18,8 @@ class Solution(Reader):
             print('1. crime_in_seoul.csv, 구글맵 API 를 이용해서 서울시내 경찰서 주소목록파일을 작성하시오.')
             print('2. us-states.json, us_unemployment.csv 를 이용해서 미국 실업률 지도를 작성하시오.')
             print('3. cctv_in_seoul.csv, pop_in_seoul.csv 를 이용해서 서울시내 경찰서 주소목록파일(cctv_pop.csv)을 작성하시오.')
+            print('4. ')
+            print('5. 주어진 데이터를 활용해서 서울시내 경찰서 범죄발생과 검거율 현황지도(폴리움)를 작성하시오 ')
             return input('메뉴 선택 \n')
 
         while 1:
@@ -34,6 +34,8 @@ class Solution(Reader):
                 self.save_cctv_pos()
             if menu == '4':
                 self.save_police_norm()
+            if menu == '5':
+                self.draw_crime_map()
             elif menu == '0':
                 break
 
@@ -117,7 +119,6 @@ class Solution(Reader):
         for name in station_addrs:
             temp = name.split()
             # temp = ['대한민국', '서울특별시', '중구', '수표로', '27']
-            #
             gu_name = [gu for gu in temp if gu[-1] == '구'][0]
             gu_names.append(gu_name)
         crime['구별'] = gu_names
@@ -126,7 +127,7 @@ class Solution(Reader):
         # for name in crime['구별']:
         #     print(name)
 
-        crime.to_csv('./save/police_pos.csv')
+        crime.to_csv('./save/police_pos.csv', index=False)  # index 랜덤생성 방지
 
 
 
@@ -135,7 +136,7 @@ class Solution(Reader):
         file.fname = 'cctv_in_seoul'
         cctv = self.csv(file)
         file.fname = 'pop_in_seoul'
-        pop = self.xls(file, 1, 2, 'B,D,G,J,N')  # fname, header, skiprows, cols
+        pop = self.xls(file, 1, 'B,D,G,J,N', 2)  # fname, header, skiprows, cols
         '''
              기관명    소계  2013년도 이전  2014년  2015년  2016년
         0    강남구  2780       1292       430    584    932
@@ -168,7 +169,7 @@ class Solution(Reader):
         pop['고령자비율'] = pop['고령자'].astype(int) / pop['인구수'].astype(int) * 100
 
         cctv_pop = pd.merge(cctv, pop, on='구별', how='outer')
-      
+
         cor1 = np.corrcoef(cctv_pop['고령자비율'], cctv_pop['소계'])
         cor2 = np.corrcoef(cctv_pop['외국인비율'], cctv_pop['소계'])
         print(f'고령자비율과 CCTV의 상관계수 {str(cor1)} \n'
@@ -192,7 +193,6 @@ class Solution(Reader):
          """
         cctv_pop.to_csv('./save/cctv_pop.csv')
 
-
     def save_police_norm(self):  # rescalring
         file = self.file
         file.context = './data/'
@@ -208,11 +208,11 @@ class Solution(Reader):
         file.fname = 'police_pos'
         police_pos = self.csv(file)
         police = pd.pivot_table(police_pos, index='구별', aggfunc=np.sum)
-        police['살인검거율'] = police['살인 검거'] / police['살인 발생'].astype(int) * 100
-        police['강도검거율'] = police['강도 검거'] / police['강도 발생'].astype(int) * 100
-        police['강간검거율'] = police['강간 검거'] / police['강간 발생'].astype(int) * 100
-        police['절도검거율'] = police['절도 검거'] / police['절도 발생'].astype(int) * 100
-        police['폭력검거율'] = police['폭력 검거'] / police['폭력 발생'].astype(int) * 100
+        police['살인검거율'] = police['살인 검거'].astype(int) / police['살인 발생'].astype(int) * 100
+        police['강도검거율'] = police['강도 검거'].astype(int) / police['강도 발생'].astype(int) * 100
+        police['강간검거율'] = police['강간 검거'].astype(int) / police['강간 발생'].astype(int) * 100
+        police['절도검거율'] = police['절도 검거'].astype(int) / police['절도 발생'].astype(int) * 100
+        police['폭력검거율'] = police['폭력 검거'].astype(int) / police['폭력 발생'].astype(int) * 100
         police.drop(columns={'살인 검거', '강도 검거', '강간 검거', '절도 검거', '폭력 검거'}, axis=1, inplace=True)  # axis=0 행방향, axis=1 열방향
 
         for i in self.crime_rate_columns:
@@ -225,7 +225,7 @@ class Solution(Reader):
             '강도 발생': '강도',
             '강간 발생': '강간',
             '절도 발생': '절도',
-            '폭력 발생': '폭력',
+            '폭력 발생': '폭력'
         }, inplace=True)
         print(police)
         '''
@@ -235,7 +235,7 @@ class Solution(Reader):
            강동구          100  100  100  100  ...  100.000000  100.000000  100.000000  100.000000
         '''
         x = police[self.crime_rate_columns].values
-        min_max_scalar = preprocessing.MinMaxScaler
+        min_max_scalar = preprocessing.MinMaxScaler()
         """     
         피쳐 스케일링(Feature scalining)은 해당 피쳐들의 값을 일정한 수준으로 맞춰주는 것이다.
         이때 적용되는 스케일링 방법이 표준화(standardization) 와 정규화(normalization)다.
@@ -257,7 +257,8 @@ class Solution(Reader):
         police_norm[self.crime_rate_columns] = police[self.crime_rate_columns]
         police_norm['범죄'] = np.sum(police_norm[self.crime_rate_columns], axis=1)
         police_norm['검거'] = np.sum(police_norm[self.crime_columns], axis=1)
-        police_norm.to_csv('./saved_data/police_norm.csv', sep=',', encoding='UTF-8')
+        police_norm.to_csv('./save/police_norm.csv', sep=',', encoding='UTF-8')
+
 
 
 
@@ -288,8 +289,83 @@ class Solution(Reader):
 
     def draw_crime_map(self):
         file = self.file
-        file.fname = 'geo_simple'
-        print(self.json(file))
+        file.context = './data/'
+        file.fname = 'geo_simple'  # 서울시지도 geo_simple.json
+        seoul_map = self.map_json(file)
+        print(seoul_map)
+        # 범죄현황 데이터 crime_in_seoul.csv
+        file.fname = 'crime_in_seoul'
+        crime = self.csv(file)
+        file.context = './save/'
+        # 검거율 정규화 데이터 police_norm.csv
+        file.fname = 'police_norm'
+        police_norm = self.csv(file)
+        # 경찰서위치 police_pos.csv
+        file.fname = 'police_pos'
+        police_pos = self.csv(file)
+        station_names = []
+        for name in crime['관서명']:
+            station_names.append(f'서울{str(name[:-1])}경찰서')
+
+        gmaps = self.gmaps()
+        station_addrs = []
+        station_lats = []
+        station_lngs = []
+
+        for i, name in enumerate(station_names):
+            if name != '서울종암경찰서':
+                temp = gmaps.geocode(name, language='ko')
+            else:
+                temp = self.jongam_police_info()
+            station_addrs.append(temp[0].get('formatted_address'))
+            t_loc = temp[0].get('geometry')
+            station_lats.append(t_loc['location']['lat'])
+            station_lngs.append(t_loc['location']['lng'])
+        police_pos['lat'] = station_lats
+        police_pos['lng'] = station_lngs
+        col = ['살인 검거', '강도 검거', '강간 검거', '절도 검거', '폭력 검거']
+        tmp = police_pos[col] / police_pos[col].max()
+        police_pos['검거'] = np.sum(tmp, axis=1)
+        folium_map = folium.Map(location=[37.5502, 126.982], zoom_start=12, title='Stamen Toner')
+
+        folium.Choropleth(
+            geo_data=seoul_map,
+            data=tuple(zip(police_norm['구별'], police_norm['범죄'])),
+            columns=["State", "Crime Rate"],
+            key_on="feature.id",
+            fill_color="PuRd",
+            fill_opacity=0.7,
+            line_opacity=0.2,
+            legend_name="Crime Rate (%)",
+            reset=True,
+        ).add_to(folium_map)
+        for i in police_pos.index:
+            folium.CircleMarker([police_pos['lat'][i], police_pos['lng'][i]],
+                                radius=police_pos['검거'][i] * 10,
+                                fill_color='#0a0a32').add_to(folium_map)
+
+        folium_map.save('./save/crime_map.html')
+
+    def jongam_police_info(self):
+        return [{'address_components':
+                 [{'long_name': '32', 'short_name': '32', 'types': ['premise']},
+                  {'long_name': '화랑로7길', 'short_name': '화랑로7길',
+                   'types': ['political', 'sublocality', 'sublocality_level_4']},
+                  {'long_name': '성북구', 'short_name': '성북구',
+                   'types': ['political', 'sublocality', 'sublocality_level_1']},
+                  {'long_name': '서울특별시', 'short_name': '서울특별시',
+                   'types': ['administrative_area_level_1', 'political']},
+                  {'long_name': '대한민국', 'short_name': 'KR', 'types': ['country', 'political']},
+                  {'long_name': '100-032', 'short_name': '100-032', 'types': ['postal_code']}],
+                    'formatted_address': '대한민국 서울특별시 성북구 화랑로7길 32',
+                    'geometry': {'location':
+                    {'lat': 37.60388169879458, 'lng': 127.04001571848704},
+                    'location_type': 'ROOFTOP',
+                    'viewport': {'northeast': {'lat': 37.60388169879458, 'lng': 127.04001571848704},
+                    'southwest': {'lat': 37.60388169879458, 'lng': 127.04001571848704}}},
+                'partial_match': True, 'place_id': 'ChIJc-9q5uSifDURLhQmr5wkXmc',
+                'plus_code': {'compound_code': 'HX7Q+CV 대한민국 서울특별시', 'global_code': '8Q98HX7Q+CV'},
+                'types': ['establishment', 'point_of_interest', 'police']}]
 
 
 if __name__ == '__main__':

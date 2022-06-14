@@ -1,8 +1,12 @@
 #context, fname, train, test, id, label
+import json
 from dataclasses import dataclass
 from abc import *
 import googlemaps
 import pandas as pd
+from typing import TypeVar
+PandasDataFrame = TypeVar('pandas.core.frame.DataFrame')
+GooglemapsClient = TypeVar('googlemaps.Client')
 
 
 @dataclass
@@ -91,40 +95,50 @@ class PrinterBase(metaclass=ABCMeta):
 # new_file, csv, xls, json
 class ReaderBase(metaclass=ABCMeta):
     @abstractmethod
-    def new_file(self, file):
+    def new_file(self, file)-> str:
         pass
 
     @abstractmethod
-    def csv(self, fname):
+    def csv(self)-> PandasDataFrame:
         pass
 
     @abstractmethod
-    def xls(self, fname):
+    def xls(self)-> PandasDataFrame:
         pass
 
     @abstractmethod
-    def json(self, fname):
+    def json(self)-> PandasDataFrame:
         pass
 
-    
+# Reader
+# Printer
 class Reader(ReaderBase):
     def new_file(self, file)-> str:  # 서플라이어
         return file.context + file.fname  # 컨텍스트(외부에서 상수로 처리한다.)은 바뀌지 않지만 파일명는 바뀌니까 나눠져야한다.
+    # file.context = './data/'
+    # file.fname = 'cctv_in_seoul'
+    # file 객체에 있는 context와 fname이 필요하다.
 
-    def csv(self, fname)-> object:
-        return pd.read_csv(f"{self.new_file(fname)}.csv", encoding='UTF-8', thousands=',')
+    def csv(self, path: str)-> PandasDataFrame:
+        o = pd.read_csv(f'{self.new_file(path)}.csv', encoding='UTF-8', thousands=',')
+        print(f'type: {type(o)}')
+        return o
 
-    def xls(self, fname, header, skiprows, cols)-> object:
-        return pd.read_excel(f"{self.new_file(fname)}.xls", header=header, skiprows=[skiprows], usecols=cols)
+    def xls(self, path: str, header: str, cols: str, skiprows) -> PandasDataFrame:
+        return pd.read_excel(f'{self.new_file(path)}.xls', header=header, usecols=cols, skiprows=[skiprows])
 
-    def json(self, fname)-> object:
-        return pd.read_json(f"{self.new_file(fname)}.json", encoding='UTF-8')
+    def json(self, path: str)-> PandasDataFrame:
+        return pd.read_json(f'{self.new_file(path)}.json', encoding='UTF-8')
 
-    def gmaps(self)-> googlemaps.Client:
-        return googlemaps.Client(key='')
+    def map_json(self, path: str) -> object:
+        return json.load(open(f'{self.new_file(path)}.json', encoding='UTF-8'))
 
+    @staticmethod
+    def gmaps() -> GooglemapsClient:
+        a = googlemaps.Client(key='')
+        print(type(a))
+        return a
 
-class Printer(PrinterBase):
     @staticmethod
     def dframe(this):  # 컨슈머
         print('*' * 100)
@@ -134,3 +148,7 @@ class Printer(PrinterBase):
         print(f'4. Target bottom 1개 행\n {this.tail(1)} ')
         print(f'4. Target null 의 갯수\n {this.isnull().sum()}개')
         print('*' * 100)
+
+
+if __name__ == '__main__':
+    Reader.gmaps()
