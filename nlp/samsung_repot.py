@@ -14,7 +14,7 @@ from context.domains import File, Reader
 '''
 문장 형태의 문자 데이터를 전처리할 때 많이 사용되는 방법이다. 
 말뭉치(코퍼스 corpus)를 어떤 토큰의 단위로 분할하냐에 따라 
-단어 집합의 크기, 단어 집합이 표현하는 토크의 형태가 다르게 나타나며 
+단어 집합의 크기, 단어 집합이 표현하는 토큰의 형태가 다르게 나타나며 
 이는 모델의 성능을 좌지우지하기도 한다. 
 
 이때 텍스트를 토큰의 단위로 분할하는 작업을 토큰화라고 한다. 
@@ -122,7 +122,7 @@ class Solution(Reader):
         # ic(texts)
         return texts
 
-    def remove_stopword(self):
+    def token_embedding(self):
         tokens = self.tokenization()
         stopwords = self.read_stopword()
         # texts = [i for i in  word_tokenize(tokens) if i not in word_tokenize(stopwords)]  # word_tokenize() 사용
@@ -131,15 +131,19 @@ class Solution(Reader):
         #     if token not in stopwords:
         #         texts.append(token)
         print(texts)
-
-    def token_embedding(self):
-        pass
-
-    def document_embedding(self):
-        pass
+        return texts
 
     def draw_wordcloud(self):
-        pass
+        _ = self.token_embedding()
+        freqtxt = pd.Series(dict(FreqDist(_))).sort_values(ascending=False)
+        ic(freqtxt)
+        wcloud = WordCloud('./data/D2Coding.ttf', relative_scaling=0.2,
+                           background_color='white').generate(" ".join(_))
+        plt.figure(figsize=(12, 12))
+        plt.imshow(wcloud, interpolation='bilinear')
+        plt.axis('off')
+        plt.show()
+
 
 if __name__ == '__main__':
     Solution().hook()
