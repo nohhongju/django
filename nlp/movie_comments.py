@@ -176,7 +176,7 @@ class Solution(Reader):
         file.context = './save/'
         file.fname = 'movie_reviews.txt'
         path = self.new_file(file)
-        self.load_corpus(path)0
+        self.load_corpus(path)
 
         training_set = None
         self.count_words(training_set)
