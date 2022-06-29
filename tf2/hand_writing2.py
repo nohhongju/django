@@ -15,6 +15,7 @@ class Solution(tf.keras.Model):
         self.val_ds = None
         self.x_test = None
         self.y_test = None
+        self.hist = None
 
     def preprocessing(self):
         # MNIST 데이터셋 가져오기
@@ -40,7 +41,7 @@ class Solution(tf.keras.Model):
         # model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
 
         # 모델 학습
-        hist = model.fit(self.train_ds, validation_data=self.val_ds, epochs=10)
+        self.hist = model.fit(self.train_ds, validation_data=self.val_ds, epochs=10)
 
         # 모델 평가
         print('모델 평가')
@@ -48,9 +49,46 @@ class Solution(tf.keras.Model):
 
         # 모델 정보 출력
         model.summary()
+        model.save('./save/mnist_model.h5')
+
+        '''
+        Model: "sequential"
+        _________________________________________________________________
+        Layer (type)                 Output Shape              Param #   
+        =================================================================
+        flatten (Flatten)            (None, 784)               0         
+        _________________________________________________________________
+        dense (Dense)                (None, 20)                15700     
+        _________________________________________________________________
+        dense_1 (Dense)              (None, 20)                420       
+        _________________________________________________________________
+        dense_2 (Dense)              (None, 10)                210       
+        =================================================================
+        Total params: 16,330
+        Trainable params: 16,330
+        Non-trainable params: 0
+        _________________________________________________________________
+        '''
+
+    def draw(self):
+        hist = self.hist
+        fig, loss_ax = plt.subplots()
+        acc_ax = loss_ax.twinx()
+        loss_ax.plot(hist.history['loss'], 'y', label='train loss')
+        loss_ax.plot(hist.history['val_loss'], 'r', label='val loss')
+        acc_ax.plot(hist.history['accuracy'], 'b', label='train acc')
+        acc_ax.plot(hist.history['val_accuracy'], 'g', label='val acc')
+        loss_ax.set_xlabel('epoch')
+        loss_ax.set_ylabel('loss')
+        acc_ax.set_ylabel('accuracy')
+        loss_ax.legend(loc='upper left')
+        acc_ax.legend(loc='lower left')
+        plt.show()
+
+
 
 
 if __name__ == '__main__':
     s = Solution()
-    s.preprocessing()
-    s.modeling()
+    # s.preprocessing()
+    # s.modeling()
